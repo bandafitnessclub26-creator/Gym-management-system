@@ -1,3 +1,5 @@
+
+
 // import { useState } from 'react';
 // import { Link } from 'react-router-dom';
 // import { Input } from '../components/ui/input';
@@ -14,24 +16,32 @@
 // export function MembersListScreen() {
 //   const [searchQuery, setSearchQuery] = useState('');
 //   const [filter, setFilter] = useState<'all' | 'paid' | 'due'>('all');
-//   const { members, loading, error } = useMembers();
-
-//   console.log('Members data:', { members, loading, error, count: members.length });
+//   const { members, loading } = useMembers();
 
 //   const filteredMembers = members.filter(member => {
-//     const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+
+//     // ✅ FIX: use fee_status instead of feeStatus
+//     const status = member.fee_status || member.feeStatus || 'Pending';
+
+//     const matchesSearch =
+//       member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 //       member.phone.includes(searchQuery);
 
 //     const matchesFilter =
-//       filter === 'all' ? true :
-//       filter === 'paid' ? member.feeStatus === 'Paid' :
-//       member.feeStatus !== 'Paid';
+//       filter === 'all'
+//         ? true
+//         : filter === 'paid'
+//         ? status === 'Paid'
+//         : status !== 'Paid';
 
 //     return matchesSearch && matchesFilter;
 //   });
 
-//   const handleWhatsApp = (member: typeof members[0]) => {
-//     const message = `Hi ${member.name}, this is a reminder from Banda Fitness Club. Your membership fee is ${member.feeStatus.toLowerCase()}.`;
+//   const handleWhatsApp = (member: any) => {
+//     const status = member.fee_status || member.feeStatus || 'Pending';
+
+//     const message = `Hi ${member.name}, this is a reminder from Banda Fitness Club. Your membership fee is ${status.toLowerCase()}.`;
+
 //     const whatsappUrl = `https://wa.me/918960653217?text=${encodeURIComponent(message)}`;
 //     window.open(whatsappUrl, '_blank');
 //     toast.success('Opening WhatsApp...');
@@ -49,14 +59,17 @@
 //     <div className="min-h-screen bg-black pb-24">
 //       <AdminHeader />
 
-//       {/* Content */}
 //       <div className="px-6 pt-6">
 //         <div className="mb-6">
-//           <h2 className="text-3xl text-white mb-2 font-black tracking-tight">Members</h2>
-//           <p className="text-zinc-400 font-semibold">{filteredMembers.length} total</p>
+//           <h2 className="text-3xl text-white mb-2 font-black tracking-tight">
+//             Members
+//           </h2>
+//           <p className="text-zinc-400 font-semibold">
+//             {filteredMembers.length} total
+//           </p>
 //         </div>
 
-//         {/* Search Bar */}
+//         {/* Search */}
 //         <div className="relative mb-4">
 //           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
 //           <Input
@@ -64,7 +77,7 @@
 //             placeholder="Search by name or phone..."
 //             value={searchQuery}
 //             onChange={(e) => setSearchQuery(e.target.value)}
-//             className="h-12 pl-12 bg-zinc-900 border-zinc-800 text-white rounded-xl focus:border-[#39FF14] focus:ring-[#39FF14] font-semibold"
+//             className="h-12 pl-12 bg-zinc-900 border-zinc-800 text-white rounded-xl focus:border-[#39FF14]"
 //           />
 //         </div>
 
@@ -72,39 +85,45 @@
 //         <div className="flex gap-3 mb-6">
 //           <Button
 //             onClick={() => setFilter('all')}
-//             className={`flex-1 h-12 rounded-xl font-bold transition-all ${
+//             className={`flex-1 h-12 rounded-xl font-bold ${
 //               filter === 'all'
 //                 ? 'bg-[#39FF14] text-black'
-//                 : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800'
+//                 : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
 //             }`}
 //           >
-//             All Members
+//             All
 //           </Button>
+
 //           <Button
 //             onClick={() => setFilter('paid')}
-//             className={`flex-1 h-12 rounded-xl font-bold transition-all ${
+//             className={`flex-1 h-12 rounded-xl font-bold ${
 //               filter === 'paid'
 //                 ? 'bg-[#39FF14] text-black'
-//                 : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800'
+//                 : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
 //             }`}
 //           >
 //             Paid
 //           </Button>
+
 //           <Button
 //             onClick={() => setFilter('due')}
-//             className={`flex-1 h-12 rounded-xl font-bold transition-all ${
+//             className={`flex-1 h-12 rounded-xl font-bold ${
 //               filter === 'due'
 //                 ? 'bg-[#FF3B3B] text-white'
-//                 : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800'
+//                 : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
 //             }`}
 //           >
 //             Due
 //           </Button>
 //         </div>
 
-//         {/* Members List */}
+//         {/* Cards */}
 //         <div className="space-y-4">
 //           {filteredMembers.map((member) => {
+//             const status = member.fee_status || member.feeStatus || 'Pending';
+//             console.log("MEMBER DEBUG:", member);
+
+
 //             return (
 //               <Card
 //                 key={member.id}
@@ -113,72 +132,68 @@
 //                 <CardContent className="p-5">
 //                   <Link to={`/members/${member.id}`}>
 //                     <div className="flex items-start gap-4 mb-4">
-//                       {/* Avatar */}
+
 //                       <Avatar className="w-14 h-14 bg-gradient-to-br from-[#39FF14] to-[#2ECC40]">
-//                         {member.profilePicture && <AvatarImage src={member.profilePicture} alt={member.name} />}
-//                         <AvatarFallback className="bg-transparent text-black text-lg font-bold">
-//                           {member.name.split(' ').map(n => n[0]).join('')}
-//                         </AvatarFallback>
+//                         {member.profile_url ? (
+//                           <AvatarImage src={member.profile_url} />
+//                         ) : (
+//                           <AvatarFallback className="bg-transparent text-black font-bold">
+//                             {member.name.split(' ').map(n => n[0]).join('')}
+//                           </AvatarFallback>
+//                         )}
 //                       </Avatar>
 
-//                       {/* Info */}
-//                       <div className="flex-1 min-w-0">
-//                         <div className="flex items-start justify-between mb-1">
-//                           <h3 className="text-white text-lg truncate font-bold">{member.name}</h3>
+//                       <div className="flex-1">
+//                         <div className="flex justify-between mb-1">
+//                           <h3 className="text-white text-lg font-bold">
+//                             {member.name}
+//                           </h3>
+
 //                           <Badge
 //                             className={`
-//                               ${member.feeStatus === 'Paid' ? 'bg-[#39FF14]/20 text-[#39FF14] border-[#39FF14]/30' : ''}
-//                               ${member.feeStatus === 'Pending' ? 'bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30' : ''}
-//                               ${member.feeStatus === 'Overdue' ? 'bg-[#FF3B3B]/20 text-[#FF3B3B] border-[#FF3B3B]/30' : ''}
+//                               ${status === 'Paid' ? 'bg-[#39FF14]/20 text-[#39FF14]' : ''}
+//                               ${status !== 'Paid' ? 'bg-[#FF3B3B]/20 text-[#FF3B3B]' : ''}
 //                               border rounded-full px-3 py-1 text-xs font-bold
 //                             `}
 //                           >
-//                             {member.feeStatus}
+//                             {status}
 //                           </Badge>
 //                         </div>
 
-//                         <div className="flex items-center gap-2 text-zinc-400 text-sm mb-1">
+//                         <div className="flex items-center gap-2 text-zinc-400 text-sm">
 //                           <Phone className="w-3 h-3" />
-//                           <span className="font-semibold">{member.phone}</span>
+//                           {member.phone}
 //                         </div>
-
-//                         <p className="text-zinc-500 text-xs font-semibold">{member.plan} Plan</p>
 //                       </div>
 //                     </div>
 
-//                     {/* Progress Bar */}
 //                     <FeeProgressBar member={member} size="small" />
 //                   </Link>
 
-//                   {/* WhatsApp Button */}
 //                   <Button
 //                     onClick={(e) => {
 //                       e.preventDefault();
 //                       handleWhatsApp(member);
 //                     }}
-//                     className="w-full h-12 mt-4 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-xl font-bold"
+//                     className="w-full h-12 mt-4 bg-[#25D366] text-white rounded-xl font-bold"
 //                   >
 //                     <MessageCircle className="w-4 h-4 mr-2" />
-//                     Send WhatsApp Notification
+//                     Send WhatsApp
 //                   </Button>
 //                 </CardContent>
 //               </Card>
 //             );
 //           })}
-
-//           {filteredMembers.length === 0 && (
-//             <div className="text-center py-12">
-//               <p className="text-zinc-500 font-semibold">No members found</p>
-//             </div>
-//           )}
 //         </div>
 //       </div>
 //     </div>
 //   );
 // }
 
+
+
+
 // import { useState } from 'react';
-// import { Link } from 'react-router-dom';
 // import { Input } from '../components/ui/input';
 // import { Button } from '../components/ui/button';
 // import { Card, CardContent } from '../components/ui/card';
@@ -187,16 +202,34 @@
 // import { Search, Phone, Loader2, MessageCircle } from 'lucide-react';
 // import { AdminHeader } from '../components/AdminHeader';
 // import { useMembers } from '../hooks/useMembers';
-// import { FeeProgressBar } from '../components/FeeProgressBar';
 // import { toast } from 'sonner';
 
 // export function MembersListScreen() {
+
 //   const [searchQuery, setSearchQuery] = useState('');
 //   const [filter, setFilter] = useState<'all' | 'paid' | 'due'>('all');
+
 //   const { members, loading } = useMembers();
 
+//   const today = new Date();
+//   today.setHours(0, 0, 0, 0);
+
+//   const calculateRemainingDays = (member: any) => {
+//     if (!member.fee_end_date) return 0;
+
+//     const end = new Date(member.fee_end_date);
+//     end.setHours(0, 0, 0, 0);
+
+//     const diff = end.getTime() - today.getTime();
+//     return Math.ceil(diff / (1000 * 60 * 60 * 24));
+//   };
+
 //   const filteredMembers = members.filter(member => {
+
+//     const status = member.fee_status || 'Pending';
+
 //     const matchesSearch =
+//       searchQuery === '' ||
 //       member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 //       member.phone.includes(searchQuery);
 
@@ -204,14 +237,14 @@
 //       filter === 'all'
 //         ? true
 //         : filter === 'paid'
-//         ? member.feeStatus === 'Paid'
-//         : member.feeStatus !== 'Paid';
+//         ? status === 'Paid'
+//         : status !== 'Paid';
 
 //     return matchesSearch && matchesFilter;
 //   });
 
-//   const handleWhatsApp = (member: typeof members[0]) => {
-//     const message = `Hi ${member.name}, this is a reminder from Banda Fitness Club.`;
+//   const handleWhatsApp = (member: any) => {
+//     const message = `Hi ${member.name}, your gym membership is ${member.fee_status}.`;
 //     const whatsappUrl = `https://wa.me/918960653217?text=${encodeURIComponent(message)}`;
 //     window.open(whatsappUrl, '_blank');
 //     toast.success('Opening WhatsApp...');
@@ -230,6 +263,7 @@
 //       <AdminHeader />
 
 //       <div className="px-6 pt-6">
+
 //         <div className="mb-6">
 //           <h2 className="text-3xl text-white mb-2 font-black tracking-tight">
 //             Members
@@ -239,138 +273,7 @@
 //           </p>
 //         </div>
 
-//         <div className="space-y-4">
-//           {filteredMembers.map((member) => (
-//             <Card
-//               key={member.id}
-//               className="bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800 rounded-2xl overflow-hidden"
-//             >
-//               <CardContent className="p-5">
-//                 <Link to={`/members/${member.id}`}>
-//                   <div className="flex items-start gap-4 mb-4">
-//                     {/* ✅ FIXED AVATAR */}
-//                     <Avatar className="w-14 h-14">
-//                       {member.profile_url ? (
-//                         <AvatarImage
-//                           src={member.profile_url}
-//                           alt={member.name}
-//                         />
-//                       ) : (
-//                         <AvatarImage
-//                           src={`https://ui-avatars.com/api/?name=${member.name}&background=39FF14&color=000`}
-//                           alt={member.name}
-//                         />
-//                       )}
-//                       <AvatarFallback>
-//                         {member.name
-//                           .split(' ')
-//                           .map((n) => n[0])
-//                           .join('')}
-//                       </AvatarFallback>
-//                     </Avatar>
-
-//                     <div className="flex-1">
-//                       <div className="flex justify-between mb-1">
-//                         <h3 className="text-white text-lg font-bold">
-//                           {member.name}
-//                         </h3>
-//                         <Badge className="bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30">
-//                           {member.feeStatus || 'Active'}
-//                         </Badge>
-//                       </div>
-
-//                       <div className="flex items-center gap-2 text-zinc-400 text-sm">
-//                         <Phone className="w-3 h-3" />
-//                         <span>{member.phone}</span>
-//                       </div>
-//                     </div>
-//                   </div>
-
-//                   <FeeProgressBar member={member} size="small" />
-//                 </Link>
-
-//                 <Button
-//                   onClick={(e) => {
-//                     e.preventDefault();
-//                     handleWhatsApp(member);
-//                   }}
-//                   className="w-full h-12 mt-4 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-xl font-bold"
-//                 >
-//                   <MessageCircle className="w-4 h-4 mr-2" />
-//                   Send WhatsApp Notification
-//                 </Button>
-//               </CardContent>
-//             </Card>
-//           ))}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// import { useState } from 'react';
-// import { Link } from 'react-router-dom';
-// import { Input } from '../components/ui/input';
-// import { Button } from '../components/ui/button';
-// import { Card, CardContent } from '../components/ui/card';
-// import { Badge } from '../components/ui/badge';
-// import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-// import { Search, Phone, Loader2, MessageCircle } from 'lucide-react';
-// import { AdminHeader } from '../components/AdminHeader';
-// import { useMembers } from '../hooks/useMembers';
-// import { FeeProgressBar } from '../components/FeeProgressBar';
-// import { toast } from 'sonner';
-
-// export function MembersListScreen() {
-//   const [searchQuery, setSearchQuery] = useState('');
-//   const [filter, setFilter] = useState<'all' | 'paid' | 'due'>('all');
-//   const { members, loading } = useMembers();
-
-//   const filteredMembers = members.filter(member => {
-//     const matchesSearch =
-//       member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-//       member.phone.includes(searchQuery);
-
-//     const matchesFilter =
-//       filter === 'all'
-//         ? true
-//         : filter === 'paid'
-//         ? member.feeStatus === 'Paid'
-//         : member.feeStatus !== 'Paid';
-
-//     return matchesSearch && matchesFilter;
-//   });
-
-//   const handleWhatsApp = (member: typeof members[0]) => {
-//     const message = `Hi ${member.name}, this is a reminder from Banda Fitness Club. Your membership fee is ${member.feeStatus?.toLowerCase() || 'active'}.`;
-//     const whatsappUrl = `https://wa.me/918960653217?text=${encodeURIComponent(message)}`;
-//     window.open(whatsappUrl, '_blank');
-//     toast.success('Opening WhatsApp...');
-//   };
-
-//   if (loading) {
-//     return (
-//       <div className="min-h-screen bg-black flex items-center justify-center">
-//         <Loader2 className="w-8 h-8 text-[#39FF14] animate-spin" />
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="min-h-screen bg-black pb-24">
-//       <AdminHeader />
-
-//       <div className="px-6 pt-6">
-//         <div className="mb-6">
-//           <h2 className="text-3xl text-white mb-2 font-black tracking-tight">
-//             Members
-//           </h2>
-//           <p className="text-zinc-400 font-semibold">
-//             {filteredMembers.length} total
-//           </p>
-//         </div>
-
-//         {/* Search Bar */}
+//         {/* Search */}
 //         <div className="relative mb-4">
 //           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
 //           <Input
@@ -378,157 +281,250 @@
 //             placeholder="Search by name or phone..."
 //             value={searchQuery}
 //             onChange={(e) => setSearchQuery(e.target.value)}
-//             className="h-12 pl-12 bg-zinc-900 border-zinc-800 text-white rounded-xl focus:border-[#39FF14] focus:ring-[#39FF14] font-semibold"
+//             className="h-12 pl-12 bg-zinc-900 border-zinc-800 text-white rounded-xl"
 //           />
 //         </div>
 
 //         {/* Filters */}
 //         <div className="flex gap-3 mb-6">
-//           <Button
-//             onClick={() => setFilter('all')}
-//             className={`flex-1 h-12 rounded-xl font-bold transition-all ${
-//               filter === 'all'
-//                 ? 'bg-[#39FF14] text-black'
-//                 : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800'
-//             }`}
-//           >
-//             All Members
-//           </Button>
-//           <Button
-//             onClick={() => setFilter('paid')}
-//             className={`flex-1 h-12 rounded-xl font-bold transition-all ${
-//               filter === 'paid'
-//                 ? 'bg-[#39FF14] text-black'
-//                 : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800'
-//             }`}
-//           >
-//             Paid
-//           </Button>
-//           <Button
-//             onClick={() => setFilter('due')}
-//             className={`flex-1 h-12 rounded-xl font-bold transition-all ${
-//               filter === 'due'
-//                 ? 'bg-[#FF3B3B] text-white'
-//                 : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800'
-//             }`}
-//           >
-//             Due
-//           </Button>
+//           {['all', 'paid', 'due'].map((type) => (
+//             <Button
+//               key={type}
+//               onClick={() => setFilter(type as any)}
+//               className={`flex-1 h-12 rounded-xl font-bold ${
+//                 filter === type
+//                   ? type === 'due'
+//                     ? 'bg-[#FF3B3B] text-white'
+//                     : 'bg-[#39FF14] text-black'
+//                   : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+//               }`}
+//             >
+//               {type === 'all' ? 'All' : type === 'paid' ? 'Paid' : 'Due'}
+//             </Button>
+//           ))}
 //         </div>
 
-//         {/* Members List */}
+//         {/* Cards */}
 //         <div className="space-y-4">
-//           {filteredMembers.map((member) => (
-//             <Card
-//               key={member.id}
-//               className="bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800 rounded-2xl overflow-hidden"
-//             >
-//               <CardContent className="p-5">
-//                 <Link to={`/members/${member.id}`}>
+//           {filteredMembers.map((member) => {
+
+//             const remainingDays = calculateRemainingDays(member);
+
+//             const joinDate = member.join_date
+//               ? new Date(member.join_date).toLocaleDateString('en-IN')
+//               : '-';
+
+//             const endDate = member.fee_end_date
+//               ? new Date(member.fee_end_date).toLocaleDateString('en-IN')
+//               : '-';
+
+//             let progress = 0;
+
+//             if (member.fee_start_date && member.fee_end_date) {
+//               const start = new Date(member.fee_start_date);
+//               const end = new Date(member.fee_end_date);
+
+//               start.setHours(0,0,0,0);
+//               end.setHours(0,0,0,0);
+
+//               const total = end.getTime() - start.getTime();
+//               const used = today.getTime() - start.getTime();
+
+//               if (total > 0) {
+//                 progress =
+//                   used <= 0
+//                     ? 0
+//                     : used >= total
+//                     ? 100
+//                     : Math.floor((used / total) * 100);
+//               }
+//             }
+
+//             return (
+//               <Card
+//                 key={member.id}
+//                 className="bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800 rounded-2xl overflow-hidden"
+//               >
+//                 <CardContent className="p-5">
+
 //                   <div className="flex items-start gap-4 mb-4">
 
-//                     {/* ✅ AVATAR FIXED */}
 //                     <Avatar className="w-14 h-14 bg-gradient-to-br from-[#39FF14] to-[#2ECC40]">
 //                       {member.profile_url ? (
-//                         <AvatarImage src={member.profile_url} alt={member.name} />
+//                         <AvatarImage src={member.profile_url} />
 //                       ) : (
-//                         <AvatarImage
-//                           src={`https://ui-avatars.com/api/?name=${member.name}&background=39FF14&color=000`}
-//                           alt={member.name}
-//                         />
+//                         <AvatarFallback className="bg-transparent text-black font-bold">
+//                           {member.name.split(' ').map(n => n[0]).join('')}
+//                         </AvatarFallback>
 //                       )}
-//                       <AvatarFallback className="bg-transparent text-black text-lg font-bold">
-//                         {member.name.split(' ').map(n => n[0]).join('')}
-//                       </AvatarFallback>
 //                     </Avatar>
 
-//                     {/* Info */}
-//                     <div className="flex-1 min-w-0">
-//                       <div className="flex items-start justify-between mb-1">
-//                         <h3 className="text-white text-lg truncate font-bold">
+//                     <div className="flex-1">
+//                       <div className="flex justify-between mb-1">
+//                         <h3 className="text-white text-lg font-bold">
 //                           {member.name}
 //                         </h3>
 
 //                         <Badge
-//                           className={`
-//                             ${member.feeStatus === 'Paid' ? 'bg-[#39FF14]/20 text-[#39FF14] border-[#39FF14]/30' : ''}
-//                             ${member.feeStatus === 'Pending' ? 'bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30' : ''}
-//                             ${member.feeStatus === 'Overdue' ? 'bg-[#FF3B3B]/20 text-[#FF3B3B] border-[#FF3B3B]/30' : ''}
-//                             border rounded-full px-3 py-1 text-xs font-bold
-//                           `}
+//                           className={`${
+//                             member.fee_status === 'Paid'
+//                               ? 'bg-[#39FF14]/20 text-[#39FF14]'
+//                               : 'bg-[#FF3B3B]/20 text-[#FF3B3B]'
+//                           } border rounded-full px-3 py-1 text-xs font-bold`}
 //                         >
-//                           {member.feeStatus || 'Active'}
+//                           {member.fee_status}
 //                         </Badge>
 //                       </div>
 
-//                       <div className="flex items-center gap-2 text-zinc-400 text-sm mb-1">
+//                       <div className="flex items-center gap-2 text-zinc-400 text-sm">
 //                         <Phone className="w-3 h-3" />
-//                         <span className="font-semibold">{member.phone}</span>
+//                         {member.phone}
 //                       </div>
-
-//                       <p className="text-zinc-500 text-xs font-semibold">
-//                         {member.plan} Plan
-//                       </p>
 //                     </div>
 //                   </div>
 
-//                   <FeeProgressBar member={member} size="small" />
-//                 </Link>
+//                   {/* Dates */}
+//                   <div className="text-sm text-zinc-400 mb-2">
+//                     <div>Joining: <span className="text-white">{joinDate}</span></div>
+//                     <div>Valid Till: <span className="text-white">{endDate}</span></div>
+//                   </div>
 
-//                 {/* WhatsApp Button */}
-//                 <Button
-//                   onClick={(e) => {
-//                     e.preventDefault();
-//                     handleWhatsApp(member);
-//                   }}
-//                   className="w-full h-12 mt-4 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-xl font-bold"
-//                 >
-//                   <MessageCircle className="w-4 h-4 mr-2" />
-//                   Send WhatsApp Notification
-//                 </Button>
-//               </CardContent>
-//             </Card>
-//           ))}
+//                   {/* Progress Bar */}
+//                   <div className="w-full bg-zinc-800 rounded-full h-3 overflow-hidden mb-2">
+//                     <div
+//                       className={`h-full transition-all duration-500 ${
+//                         progress < 80
+//                           ? 'bg-[#39FF14]'
+//                           : progress < 100
+//                           ? 'bg-yellow-500'
+//                           : 'bg-[#FF3B3B]'
+//                       }`}
+//                       style={{ width: `${progress}%` }}
+//                     />
+//                   </div>
 
-//           {filteredMembers.length === 0 && (
-//             <div className="text-center py-12">
-//               <p className="text-zinc-500 font-semibold">
-//                 No members found
-//               </p>
-//             </div>
-//           )}
+//                   {/* Days Remaining */}
+//                   <div className="text-sm font-semibold mb-3">
+//                     {remainingDays > 0 ? (
+//                       <span className="text-[#39FF14]">
+//                         {remainingDays} days remaining
+//                       </span>
+//                     ) : (
+//                       <span className="text-[#FF3B3B]">
+//                         Expired
+//                       </span>
+//                     )}
+//                   </div>
+
+//                   <Button
+//                     onClick={() => handleWhatsApp(member)}
+//                     className="w-full h-12 bg-[#25D366] text-white rounded-xl font-bold"
+//                   >
+//                     <MessageCircle className="w-4 h-4 mr-2" />
+//                     Send WhatsApp
+//                   </Button>
+
+//                 </CardContent>
+//               </Card>
+//             );
+//           })}
 //         </div>
+
 //       </div>
 //     </div>
 //   );
 // }
 
+
+
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { Search, Phone, Loader2, MessageCircle } from 'lucide-react';
+import { Search, Phone, Loader2, Trash2, MessageCircle } from 'lucide-react';
 import { AdminHeader } from '../components/AdminHeader';
 import { useMembers } from '../hooks/useMembers';
-import { FeeProgressBar } from '../components/FeeProgressBar';
+import { membersApi } from '../lib/api';
 import { toast } from 'sonner';
 
 export function MembersListScreen() {
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'paid' | 'due'>('all');
-  const { members, loading } = useMembers();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const { members, loading, refetch } = useMembers();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const calculateRemainingDays = (member: any) => {
+    if (!member.fee_end_date) return 0;
+    const end = new Date(member.fee_end_date);
+    end.setHours(0, 0, 0, 0);
+    return Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  const calculateProgress = (member: any) => {
+    if (!member.fee_start_date || !member.fee_end_date) return 0;
+
+    const start = new Date(member.fee_start_date);
+    const end = new Date(member.fee_end_date);
+
+    start.setHours(0,0,0,0);
+    end.setHours(0,0,0,0);
+
+    const total = end.getTime() - start.getTime();
+    const used = today.getTime() - start.getTime();
+
+    if (total <= 0) return 0;
+    if (used <= 0) return 0;
+    if (used >= total) return 100;
+
+    return Math.floor((used / total) * 100);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this member?")) return;
+
+    try {
+      setDeletingId(id);
+      await membersApi.delete(id);
+      toast.success("Member deleted");
+      refetch();
+    } catch {
+      toast.error("Delete failed");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleWhatsApp = (member: any) => {
+
+    const remainingDays = calculateRemainingDays(member);
+
+    let message;
+
+    if (remainingDays > 0) {
+      message = `Hi ${member.name}, your gym membership is active till ${new Date(member.fee_end_date).toLocaleDateString('en-IN')}. You have ${remainingDays} days remaining.\n\n- Banda Fitness Club`;
+    } else {
+      message = `Hi ${member.name}, your gym membership has expired. Please renew your membership.\n\n- Banda Fitness Club`;
+    }
+
+    const whatsappUrl = `https://wa.me/91${member.phone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    toast.success("Opening WhatsApp...");
+  };
 
   const filteredMembers = members.filter(member => {
 
-    // ✅ FIX: use fee_status instead of feeStatus
-    const status = member.fee_status || member.feeStatus || 'Pending';
-
     const matchesSearch =
+      searchQuery === '' ||
       member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.phone.includes(searchQuery);
+
+    const status = member.fee_status || 'Pending';
 
     const matchesFilter =
       filter === 'all'
@@ -539,16 +535,6 @@ export function MembersListScreen() {
 
     return matchesSearch && matchesFilter;
   });
-
-  const handleWhatsApp = (member: any) => {
-    const status = member.fee_status || member.feeStatus || 'Pending';
-
-    const message = `Hi ${member.name}, this is a reminder from Banda Fitness Club. Your membership fee is ${status.toLowerCase()}.`;
-
-    const whatsappUrl = `https://wa.me/918960653217?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-    toast.success('Opening WhatsApp...');
-  };
 
   if (loading) {
     return (
@@ -563,6 +549,7 @@ export function MembersListScreen() {
       <AdminHeader />
 
       <div className="px-6 pt-6">
+
         <div className="mb-6">
           <h2 className="text-3xl text-white mb-2 font-black tracking-tight">
             Members
@@ -580,62 +567,50 @@ export function MembersListScreen() {
             placeholder="Search by name or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-12 pl-12 bg-zinc-900 border-zinc-800 text-white rounded-xl focus:border-[#39FF14]"
+            className="h-12 pl-12 bg-zinc-900 border-zinc-800 text-white rounded-xl"
           />
         </div>
 
-        {/* Filters */}
+        {/* Filter Tabs */}
         <div className="flex gap-3 mb-6">
-          <Button
-            onClick={() => setFilter('all')}
-            className={`flex-1 h-12 rounded-xl font-bold ${
-              filter === 'all'
-                ? 'bg-[#39FF14] text-black'
-                : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
-            }`}
-          >
-            All
-          </Button>
-
-          <Button
-            onClick={() => setFilter('paid')}
-            className={`flex-1 h-12 rounded-xl font-bold ${
-              filter === 'paid'
-                ? 'bg-[#39FF14] text-black'
-                : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
-            }`}
-          >
-            Paid
-          </Button>
-
-          <Button
-            onClick={() => setFilter('due')}
-            className={`flex-1 h-12 rounded-xl font-bold ${
-              filter === 'due'
-                ? 'bg-[#FF3B3B] text-white'
-                : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
-            }`}
-          >
-            Due
-          </Button>
+          {['all', 'paid', 'due'].map(type => (
+            <Button
+              key={type}
+              onClick={() => setFilter(type as any)}
+              className={`flex-1 h-12 rounded-xl font-bold ${
+                filter === type
+                  ? type === 'due'
+                    ? 'bg-[#FF3B3B] text-white'
+                    : 'bg-[#39FF14] text-black'
+                  : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+              }`}
+            >
+              {type === 'all' ? 'All' : type === 'paid' ? 'Paid' : 'Due'}
+            </Button>
+          ))}
         </div>
 
-        {/* Cards */}
         <div className="space-y-4">
-          {filteredMembers.map((member) => {
-            const status = member.fee_status || member.feeStatus || 'Pending';
-            console.log("MEMBER DEBUG:", member);
+          {filteredMembers.map(member => {
 
+            const remainingDays = calculateRemainingDays(member);
+            const progress = calculateProgress(member);
+
+            const joinDate = member.join_date
+              ? new Date(member.join_date).toLocaleDateString('en-IN')
+              : '-';
+
+            const endDate = member.fee_end_date
+              ? new Date(member.fee_end_date).toLocaleDateString('en-IN')
+              : '-';
 
             return (
-              <Card
-                key={member.id}
-                className="bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800 rounded-2xl overflow-hidden"
-              >
+              <Card key={member.id} className="bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800 rounded-2xl">
                 <CardContent className="p-5">
-                  <Link to={`/members/${member.id}`}>
-                    <div className="flex items-start gap-4 mb-4">
 
+                  <div className="flex justify-between items-start mb-4">
+
+                    <div className="flex gap-4">
                       <Avatar className="w-14 h-14 bg-gradient-to-br from-[#39FF14] to-[#2ECC40]">
                         {member.profile_url ? (
                           <AvatarImage src={member.profile_url} />
@@ -646,23 +621,8 @@ export function MembersListScreen() {
                         )}
                       </Avatar>
 
-                      <div className="flex-1">
-                        <div className="flex justify-between mb-1">
-                          <h3 className="text-white text-lg font-bold">
-                            {member.name}
-                          </h3>
-
-                          <Badge
-                            className={`
-                              ${status === 'Paid' ? 'bg-[#39FF14]/20 text-[#39FF14]' : ''}
-                              ${status !== 'Paid' ? 'bg-[#FF3B3B]/20 text-[#FF3B3B]' : ''}
-                              border rounded-full px-3 py-1 text-xs font-bold
-                            `}
-                          >
-                            {status}
-                          </Badge>
-                        </div>
-
+                      <div>
+                        <h3 className="text-white text-lg font-bold">{member.name}</h3>
                         <div className="flex items-center gap-2 text-zinc-400 text-sm">
                           <Phone className="w-3 h-3" />
                           {member.phone}
@@ -670,26 +630,63 @@ export function MembersListScreen() {
                       </div>
                     </div>
 
-                    <FeeProgressBar member={member} size="small" />
-                  </Link>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleWhatsApp(member)}
+                        className="bg-[#25D366] text-white rounded-xl"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </Button>
 
-                  <Button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleWhatsApp(member);
-                    }}
-                    className="w-full h-12 mt-4 bg-[#25D366] text-white rounded-xl font-bold"
-                  >
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Send WhatsApp
-                  </Button>
+                      <Button
+                        onClick={() => handleDelete(member.id)}
+                        disabled={deletingId === member.id}
+                        className="bg-[#FF3B3B]/20 text-[#FF3B3B] hover:bg-[#FF3B3B] hover:text-white rounded-xl"
+                      >
+                        {deletingId === member.id
+                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                          : <Trash2 className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-zinc-400 mb-3">
+                    <div>Joining: <span className="text-white">{joinDate}</span></div>
+                    <div>Valid Till: <span className="text-white">{endDate}</span></div>
+                  </div>
+
+                  <div className="w-full bg-zinc-800 rounded-full h-3 overflow-hidden mb-2">
+                    <div
+                      className={`h-full transition-all duration-500 ${
+                        progress < 80
+                          ? 'bg-[#39FF14]'
+                          : progress < 100
+                          ? 'bg-yellow-500'
+                          : 'bg-[#FF3B3B]'
+                      }`}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+
+                  <div className="text-sm font-semibold">
+                    {remainingDays > 0 ? (
+                      <span className="text-[#39FF14]">
+                        {remainingDays} days remaining
+                      </span>
+                    ) : (
+                      <span className="text-[#FF3B3B]">
+                        Expired
+                      </span>
+                    )}
+                  </div>
+
                 </CardContent>
               </Card>
             );
           })}
         </div>
+
       </div>
     </div>
   );
 }
-
