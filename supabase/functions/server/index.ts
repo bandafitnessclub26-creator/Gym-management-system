@@ -470,7 +470,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 };
 
-// ✅ GLOBAL CLIENT (IMPORTANT)
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -490,10 +489,17 @@ Deno.serve(async (req) => {
   // ============================
   if (req.method === "GET" && path.endsWith("/members")) {
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("members")
       .select("*")
       .order("join_date", { ascending: false });
+
+    if (error) {
+      return new Response(JSON.stringify({ error }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(
       JSON.stringify({ members: data }),
@@ -555,111 +561,150 @@ Deno.serve(async (req) => {
   }
 
   // ============================
- // ============================
+  // CREATE PAYMENT (JOIN DATE CYCLE FIXED)
+  // ============================
+  if (req.method === "POST" && path.endsWith("/payments")) {
+
+    const body = await req.json();
+
+    const { data: member, error: memberError } = await supabase
+      .from("members")
+      .select("*")
+      .eq("id", body.memberId)
+      .single();
+
+    if (memberError || !member) {
+      return new Response(JSON.stringify({ error: "Member not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const getPlanMonths = (plan: string) => {
+      switch (plan) {
+        case "Monthly": return 1;
+        case "Quarterly": return 3;
+        case "Half Year": return 6;
+        case "Yearly": return 12;
+        default: return 1;
+      }
+    };
+
+    const months = getPlanMonths(member.plan);
+
+    let startDate;
+
+    // 🔥 ALWAYS EXTEND FROM LAST STORED END DATE
+    if (!member.fee_end_date) {
+      // First payment → start from join date
+      startDate = new Date(member.join_date);
+    } else {
+      // Renewal → start from previous end date
+      startDate = new Date(member.fee_end_date);
+    }
+
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + months);
+
+    // Insert payment record
+    const { error: paymentError } = await supabase
+      .from("payments")
+      .insert({
+        member_id: body.memberId,
+        amount: body.amount,
+        payment_method: body.paymentMethod,
+        transaction_id: body.transactionId || null,
+        month: body.month || null,
+        date: new Date().toISOString().split("T")[0],
+        status: "Paid",
+      });
+
+    if (paymentError) {
+      return new Response(JSON.stringify({ error: paymentError.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Update member validity (clean date format)
+    await supabase
+      .from("members")
+      .update({
+        fee_start_date: startDate.toISOString().split("T")[0],
+        fee_end_date: endDate.toISOString().split("T")[0],
+        fee_status: "Paid",
+      })
+      .eq("id", body.memberId);
+
+    return new Response(
+      JSON.stringify({ success: true }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // ============================
+  // ============================
 // ============================
-// CREATE PAYMENT (PLAN BASED ON JOIN DATE)
+// DASHBOARD (DATE BASED – FINAL CORRECT)
 // ============================
-if (req.method === "POST" && path.endsWith("/payments")) {
+if (req.method === "GET" && path.endsWith("/dashboard")) {
 
-  const body = await req.json();
+  const selectedMonth = url.searchParams.get("month");
 
-  const { data: member } = await supabase
-    .from("members")
-    .select("*")
-    .eq("id", body.memberId)
-    .single();
-
-  if (!member) {
-    return new Response(JSON.stringify({ error: "Member not found" }), {
-      status: 404,
+  if (!selectedMonth) {
+    return new Response(JSON.stringify({ error: "Month required" }), {
+      status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const getPlanMonths = (plan: string) => {
-    switch (plan) {
-      case "Monthly": return 1;
-      case "Quarterly": return 3;
-      case "Half Year": return 6;
-      case "Yearly": return 12;
-      default: return 1;
-    }
-  };
+  const year = new Date().getFullYear();
+  const monthIndex = new Date(`${selectedMonth} 1, ${year}`).getMonth();
 
-  const months = getPlanMonths(member.plan);
+  const startDate = new Date(year, monthIndex, 1);
+  const endDate = new Date(year, monthIndex + 1, 1);
 
-  // 🔥 START DATE = JOIN DATE (your requirement)
-  const startDate = new Date(member.join_date);
-  startDate.setHours(0,0,0,0);
-
-  const endDate = new Date(startDate);
-  endDate.setMonth(endDate.getMonth() + months);
-
-  // Insert payment
-  await supabase.from("payments").insert({
-    member_id: body.memberId,
-    amount: body.amount,
-    payment_method: body.paymentMethod,
-    transaction_id: body.transactionId,
-    date: new Date(),
-    status: "Paid",
-  });
-
-  // Update member validity
-  await supabase
+  // Get members
+  const { data: members } = await supabase
     .from("members")
-    .update({
-      fee_start_date: startDate,
-      fee_end_date: endDate,
-      fee_status: "Paid",
-    })
-    .eq("id", body.memberId);
+    .select("id, monthly_fee");
+
+  // Get payments BETWEEN dates (correct way)
+  const { data: payments } = await supabase
+    .from("payments")
+    .select("member_id, amount, date")
+    .gte("date", startDate.toISOString().split("T")[0])
+    .lt("date", endDate.toISOString().split("T")[0]);
+
+  const paidMemberIds = new Set(
+    (payments || []).map(p => p.member_id)
+  );
+
+  const totalMembers = members?.length || 0;
+  const paidMembers = paidMemberIds.size;
+
+  const monthlyCollection =
+    (payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+
+  const pendingFees =
+    (members || [])
+      .filter(m => !paidMemberIds.has(m.id))
+      .reduce((sum, m) => sum + (m.monthly_fee || 0), 0);
 
   return new Response(
-    JSON.stringify({ success: true }),
+    JSON.stringify({
+      stats: {
+        totalMembers,
+        paidMembers,
+        pendingFees,
+        monthlyCollection,
+      }
+    }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );
 }
-
-// DASHBOARD
-  // ============================
-  if (req.method === "GET" && path.endsWith("/dashboard")) {
-
-    const { data: members } = await supabase
-      .from("members")
-      .select("id, monthly_fee");
-
-    const { data: payments } = await supabase
-      .from("payments")
-      .select("member_id, amount");
-
-    const paidMemberIds = new Set(
-      (payments || []).map(p => p.member_id)
-    );
-
-    const totalMembers = members?.length || 0;
-    const paidMembers = paidMemberIds.size;
-
-    const monthlyCollection =
-      (payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
-
-    const pendingFees =
-      (members || [])
-        .filter(m => !paidMemberIds.has(m.id))
-        .reduce((sum, m) => sum + (m.monthly_fee || 0), 0);
-
-    return new Response(
-      JSON.stringify({
-        stats: {
-          totalMembers,
-          paidMembers,
-          pendingFees,
-          monthlyCollection,
-        }
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
 
 
   return new Response(
