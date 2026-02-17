@@ -522,8 +522,6 @@
 
 
 
-
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "../components/ui/card";
@@ -541,16 +539,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { ArrowLeft, Save, Loader2, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { membersApi } from "../lib/api";
+import { supabase } from "../lib/supabase";
 import { useMembersContext } from "../../context/MembersContext";
-import { useDashboardContext } from "../../context/DashboardContext"; // ✅ Added
+import { useDashboardContext } from "../../context/DashboardContext";
 
 export function AddEditMemberScreen() {
   const navigate = useNavigate();
   const { refresh } = useMembersContext();
-  const { refresh: refreshDashboard } = useDashboardContext(); // ✅ Added
+  const { refresh: refreshDashboard } = useDashboardContext();
 
   const [loading, setLoading] = useState(false);
   const [profilePicture, setProfilePicture] = useState<string>("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -561,6 +561,7 @@ export function AddEditMemberScreen() {
     joinDate: new Date().toISOString().split("T")[0],
   });
 
+  // ✅ IMAGE SELECT (NO BASE64)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -570,12 +571,9 @@ export function AddEditMemberScreen() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setProfilePicture(reader.result as string);
-      toast.success("Profile picture uploaded!");
-    };
-    reader.readAsDataURL(file);
+    setSelectedFile(file);
+    setProfilePicture(URL.createObjectURL(file));
+    toast.success("Profile picture selected!");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -589,6 +587,29 @@ export function AddEditMemberScreen() {
     try {
       setLoading(true);
 
+      let profileUrl = "";
+
+      // ✅ Upload to Supabase Storage
+      if (selectedFile) {
+        const fileName = `${Date.now()}-${selectedFile.name}`;
+
+        const { error } = await supabase.storage
+          .from("member-images")
+          .upload(fileName, selectedFile);
+
+        if (error) {
+          toast.error("Image upload failed");
+          setLoading(false);
+          return;
+        }
+
+        const { data } = supabase.storage
+          .from("member-images")
+          .getPublicUrl(fileName);
+
+        profileUrl = data.publicUrl;
+      }
+
       await membersApi.create({
         name: formData.name,
         phone: formData.phone,
@@ -600,13 +621,10 @@ export function AddEditMemberScreen() {
           | "Yearly",
         monthlyFee: Number(formData.monthlyFee),
         joinDate: new Date(formData.joinDate),
-        profileUrl: profilePicture,
+        profileUrl: profileUrl,
       });
 
-      // ✅ Refresh Members
       await refresh();
-
-      // ✅ Refresh Dashboard
       await refreshDashboard();
 
       toast.success("Member added successfully!");
