@@ -175,36 +175,46 @@
 
 
 
-
-
-
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Users, DollarSign, AlertCircle, TrendingUp, UserPlus, CreditCard, List, Loader2 } from 'lucide-react';
 import { AdminHeader } from '../components/AdminHeader';
-import { useDashboard } from '../hooks/useDashboard';
 import { useMembersContext } from '../../context/MembersContext';
 import { calculateFeeProgress } from '../utils/dateUtils';
 import { MONTHS, getCurrentMonth, calculateMonthProgress } from '../utils/monthProgress';
+import { useState } from 'react';
 
 export function DashboardScreen() {
 
+  const { members, loading } = useMembersContext();
+
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
 
-  const { stats, loading: statsLoading } = useDashboard(selectedMonth);
-  const { members, loading: membersLoading } = useMembersContext();
-
   const monthProgress = calculateMonthProgress(selectedMonth);
+
+  // ✅ CALCULATE STATS FROM MEMBERS (NO API)
+  const totalMembers = members.length;
+
+  const paidMembers = members.filter(
+    m => m.fee_status === "Paid"
+  ).length;
+
+  const pendingFees = members
+    .filter(m => m.fee_status !== "Paid")
+    .reduce((sum, m) => sum + (m.monthly_fee || 0), 0);
+
+  const monthlyCollection = members
+    .filter(m => m.fee_status === "Paid")
+    .reduce((sum, m) => sum + (m.monthly_fee || 0), 0);
 
   const upcomingDues = members.filter(member => {
     const progress = calculateFeeProgress(member);
     return progress.daysRemaining > 0 && progress.daysRemaining <= 5;
   }).length;
 
-  if (statsLoading || membersLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-[#39FF14] animate-spin" />
@@ -234,7 +244,7 @@ export function DashboardScreen() {
           <Card className="bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800 rounded-2xl">
             <CardContent className="p-5">
               <Users className="w-8 h-8 text-[#39FF14] mb-3" />
-              <p className="text-3xl text-white font-black">{stats.totalMembers}</p>
+              <p className="text-3xl text-white font-black">{totalMembers}</p>
               <p className="text-zinc-400 text-xs font-semibold">Total Members</p>
             </CardContent>
           </Card>
@@ -242,7 +252,7 @@ export function DashboardScreen() {
           <Card className="bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800 rounded-2xl">
             <CardContent className="p-5">
               <TrendingUp className="w-8 h-8 text-[#39FF14] mb-3" />
-              <p className="text-3xl text-white font-black">{stats.paidMembers}</p>
+              <p className="text-3xl text-white font-black">{paidMembers}</p>
               <p className="text-zinc-400 text-xs font-semibold">Paid Members</p>
             </CardContent>
           </Card>
@@ -251,7 +261,7 @@ export function DashboardScreen() {
             <CardContent className="p-5">
               <AlertCircle className="w-8 h-8 text-[#FF3B3B] mb-3" />
               <p className="text-3xl text-white font-black">
-                ₹{stats.pendingFees.toLocaleString()}
+                ₹{pendingFees.toLocaleString()}
               </p>
               <p className="text-zinc-400 text-xs font-semibold">Pending Fees</p>
             </CardContent>
@@ -261,9 +271,9 @@ export function DashboardScreen() {
             <CardContent className="p-5">
               <DollarSign className="w-8 h-8 text-[#39FF14] mb-3" />
               <p className="text-3xl text-white font-black">
-                ₹{stats.monthlyCollection.toLocaleString()}
+                ₹{monthlyCollection.toLocaleString()}
               </p>
-              <p className="text-zinc-400 text-xs font-semibold">This Month</p>
+              <p className="text-zinc-400 text-xs font-semibold">Collection</p>
             </CardContent>
           </Card>
 
@@ -294,14 +304,6 @@ export function DashboardScreen() {
               />
             </div>
 
-            <div className="flex justify-between mt-2 text-sm">
-              <span className="text-zinc-400">
-                Day {monthProgress.daysPassed} of {monthProgress.totalDays}
-              </span>
-              <span className="text-[#39FF14] font-bold">
-                {monthProgress.progressPercentage.toFixed(1)}%
-              </span>
-            </div>
           </CardContent>
         </Card>
 

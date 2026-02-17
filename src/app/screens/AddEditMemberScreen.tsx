@@ -541,11 +541,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { ArrowLeft, Save, Loader2, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { membersApi } from "../lib/api";
-import { useMembersContext } from "../../context/MembersContext"; // ✅ ONLY ADDITION
+import { useMembersContext } from "../../context/MembersContext";
+import { useDashboardContext } from "../../context/DashboardContext"; // ✅ Added
 
 export function AddEditMemberScreen() {
   const navigate = useNavigate();
-  const { refresh } = useMembersContext(); // ✅ ONLY ADDITION
+  const { refresh } = useMembersContext();
+  const { refresh: refreshDashboard } = useDashboardContext(); // ✅ Added
 
   const [loading, setLoading] = useState(false);
   const [profilePicture, setProfilePicture] = useState<string>("");
@@ -601,8 +603,11 @@ export function AddEditMemberScreen() {
         profileUrl: profilePicture,
       });
 
-      // ✅ ONLY IMPORTANT ADDITION
+      // ✅ Refresh Members
       await refresh();
+
+      // ✅ Refresh Dashboard
+      await refreshDashboard();
 
       toast.success("Member added successfully!");
       navigate("/members");
@@ -795,4 +800,3 @@ export function AddEditMemberScreen() {
     </div>
   );
 }
-

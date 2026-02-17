@@ -215,9 +215,6 @@
 
 
 
-
-
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '../components/ui/card';
@@ -226,6 +223,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { useMembersContext } from '../../context/MembersContext';
+import { useDashboardContext } from '../../context/DashboardContext'; // ✅ NEW
 import { paymentsApi } from '../lib/api';
 import { MONTHS, getCurrentMonth } from '../utils/monthProgress';
 import { toast } from 'sonner';
@@ -236,6 +234,7 @@ export function AddFeePaymentScreen() {
   const memberId = searchParams.get('memberId');
 
   const { members, refresh } = useMembersContext();
+  const { refresh: refreshDashboard } = useDashboardContext(); // ✅ NEW
 
   const [selectedMember, setSelectedMember] = useState(memberId || '');
   const [searchQuery, setSearchQuery] = useState('');
@@ -284,14 +283,18 @@ export function AddFeePaymentScreen() {
       await paymentsApi.create({
         memberId: selectedMember,
         amount: Number(formData.amount),
-        month: selectedMonth, // ✅ month included
+        month: selectedMonth,
         paymentMethod: formData.paymentMethod as 'UPI' | 'Cash',
         transactionId: formData.transactionId,
         status: 'Paid',
         date: new Date(),
       });
 
-      await refresh(); // refresh global members
+      // ✅ Refresh members
+      await refresh();
+
+      // ✅ Refresh dashboard
+      await refreshDashboard();
 
       toast.success(`Payment saved for ${selectedMonth}!`);
       navigate('/dashboard');
@@ -306,7 +309,6 @@ export function AddFeePaymentScreen() {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      {/* Header */}
       <div className="bg-gradient-to-b from-zinc-900 to-black pt-12 pb-6 px-6">
         <div className="flex items-center gap-4 mb-6">
           <button
@@ -323,7 +325,6 @@ export function AddFeePaymentScreen() {
 
       <div className="px-6">
 
-        {/* Selected Member Card */}
         {member && (
           <Card className="bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800 rounded-2xl mb-6">
             <CardContent className="p-5">
@@ -344,7 +345,6 @@ export function AddFeePaymentScreen() {
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
 
-              {/* Member Selector */}
               {!memberId && (
                 <div className="space-y-2">
                   <Label className="text-zinc-300">
@@ -377,7 +377,6 @@ export function AddFeePaymentScreen() {
                 </div>
               )}
 
-              {/* Month Selector */}
               <div className="space-y-2">
                 <Label className="text-zinc-300">
                   Select Month *
@@ -395,7 +394,6 @@ export function AddFeePaymentScreen() {
                 </select>
               </div>
 
-              {/* Amount */}
               <div className="space-y-2">
                 <Label className="text-zinc-300">
                   Amount *
@@ -410,7 +408,6 @@ export function AddFeePaymentScreen() {
                 />
               </div>
 
-              {/* Save Button */}
               <Button
                 type="submit"
                 disabled={loading}
